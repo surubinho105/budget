@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Tracker</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --bg-accent: #05080f;
+            --card: rgba(16, 24, 40, 0.84);
+            --text: #e9f1ff;
+            --muted: #9fb3cc;
+            --accent: #2f81f7;
+            --accent-deep: #1d4ed8;
+            --success: #5fa8ff;
+            --border: #26344d;
+            --glow: rgba(47, 129, 247, 0.25);
+            --shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: "Segoe UI", "Trebuchet MS", Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 12% 10%, rgba(47, 129, 247, 0.2), transparent 32%),
+                radial-gradient(circle at 90% 20%, rgba(59, 130, 246, 0.12), transparent 28%),
+                linear-gradient(155deg, var(--bg), var(--bg-accent));
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            width: 340px;
+            height: 340px;
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(10px);
+            animation: blobFloat 18s ease-in-out infinite;
+        }
+
+        body::before {
+            top: -120px;
+            left: -90px;
+            background: radial-gradient(circle, rgba(47, 129, 247, 0.22), rgba(47, 129, 247, 0));
+        }
+
+        body::after {
+            right: -120px;
+            bottom: -140px;
+            background: radial-gradient(circle, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0));
+            animation-delay: -8s;
+        }
+
+        @keyframes blobFloat {
+            0%,
+            100% {
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+            50% {
+                transform: translate3d(24px, -18px, 0) scale(1.08);
+            }
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 28px 18px 30px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(1.7rem, 2.8vw, 2.35rem);
+            letter-spacing: 0.02em;
+            color: #d9e8ff;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        p.subtitle {
+            margin: 0 0 18px;
+            color: var(--muted);
+            font-size: 1.02rem;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(4px);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(24px);
+            animation: cardReveal 0.75s cubic-bezier(0.21, 1, 0.32, 1) forwards;
+            animation-delay: var(--reveal-delay, 0s);
+            transition: transform 0.2s ease;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -140%;
+            width: 70%;
+            height: 100%;
+            background: linear-gradient(110deg, transparent 10%, rgba(255, 255, 255, 0.5) 50%, transparent 90%);
+            animation: shimmerSweep 1.4s ease-out 1;
+            animation-play-state: paused;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card.shimmer-active::before {
+            opacity: 1;
+            animation-play-state: running;
+        }
+
+        @keyframes cardReveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmerSweep {
+            0% {
+                left: -140%;
+            }
+            48% {
+                left: 160%;
+            }
+            100% {
+                left: 160%;
+            }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: #c8d8f0;
+        }
+
+        input,
+        button,
+        textarea {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 10px;
+            font-size: 1rem;
+        }
+
+        input,
+        textarea {
+            background: rgba(9, 14, 24, 0.9);
+            color: #e9f1ff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+        }
+
+        textarea {
+            min-height: 92px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: 2px solid #2a3f5f;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--glow);
+            transform: translateY(-1px);
+        }
+
+        .button-row {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: linear-gradient(140deg, var(--accent), var(--accent-deep));
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 7px 16px rgba(37, 99, 235, 0.35);
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 700;
+            border: none;
+            color: white;
+            background: linear-gradient(140deg, var(--accent), var(--accent-deep));
+            box-shadow: 0 7px 16px rgba(37, 99, 235, 0.35);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+            filter: saturate(1.05);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button.secondary {
+            background: linear-gradient(140deg, #1f2937, #111827);
+            box-shadow: 0 7px 16px rgba(0, 0, 0, 0.35);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .stat {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: linear-gradient(160deg, rgba(13, 19, 32, 0.95), rgba(18, 28, 47, 0.78));
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            position: relative;
+        }
+
+        .stat:hover {
+            transform: translateY(-2px);
+            border-color: #35507a;
+        }
+
+        .stat h3 {
+            margin: 0;
+            font-size: 0.86rem;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .stat p {
+            margin: 6px 0 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .money {
+            color: var(--success);
+        }
+
+        .highlight-stat {
+            overflow: hidden;
+        }
+
+        .highlight-stat::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            border: 1px solid transparent;
+            background: linear-gradient(130deg, rgba(47, 129, 247, 0.9), rgba(30, 58, 138, 0.6)) border-box;
+            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            animation: pulseBorder 2.1s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pulseBorder {
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 0.95;
+            }
+        }
+
+        .small {
+            font-size: 0.86rem;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .expense-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: linear-gradient(150deg, #0b1220, #101a2f);
+        }
+
+        .expense-name {
+            font-weight: 600;
+        }
+
+        .expense-amount {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .remove-btn {
+            width: auto;
+            padding: 8px 10px;
+            background: linear-gradient(140deg, #c23a3a, #962525);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(150, 37, 37, 0.28);
+        }
+
+        .chart-wrap {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: linear-gradient(160deg, #0b1220, #0f1b33);
+        }
+
+        .progress-track {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(58, 84, 126, 0.35);
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(120deg, #2f81f7, #60a5fa);
+            transition: width 0.4s ease;
+        }
+
+        .progress-meta {
+            margin: 4px 0 0;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        h2 {
+            margin-top: 2px;
+            color: #dbeafe;
+            font-size: 1.22rem;
+            letter-spacing: 0.01em;
+        }
+
+        .goal-progress-wrap {
+            margin: 12px 0 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .goal-ring {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            display: grid;
+            place-items: center;
+        }
+
+        .goal-ring svg {
+            width: 150px;
+            height: 150px;
+            transform: rotate(-90deg);
+        }
+
+        .goal-ring-bg,
+        .goal-ring-progress {
+            fill: none;
+            stroke-width: 12;
+        }
+
+        .goal-ring-bg {
+            stroke: rgba(19, 116, 71, 0.16);
+        }
+
+        .goal-ring-progress {
+            stroke: url(#goalRingGradient);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.7s ease;
+            filter: drop-shadow(0 0 5px rgba(15, 157, 88, 0.36));
+        }
+
+        .goal-ring-label {
+            position: absolute;
+            text-align: center;
+            color: #dbeafe;
+            font-weight: 700;
+        }
+
+        .goal-ring-label .small {
+            margin: 0;
+            font-size: 0.75rem;
+        }
+
+        .loading-text {
+            color: transparent !important;
+            border-radius: 8px;
+            background: linear-gradient(90deg, rgba(30, 48, 78, 0.45), rgba(64, 95, 145, 0.9), rgba(30, 48, 78, 0.45));
+            background-size: 220% 100%;
+            animation: skeletonSweep 1.2s ease infinite;
+            min-height: 1.1em;
+        }
+
+        @keyframes skeletonSweep {
+            0% {
+                background-position: 140% 0;
+            }
+            100% {
+                background-position: -40% 0;
+            }
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            background: rgba(96, 165, 250, 0.42);
+            animation: rippleWave 650ms ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes rippleWave {
+            to {
+                transform: scale(3.2);
+                opacity: 0;
+            }
+        }
+
+        .confetti-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 99;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 8px;
+            height: 14px;
+            border-radius: 2px;
+            animation: confettiBurst 900ms ease-out forwards;
+        }
+
+        @keyframes confettiBurst {
+            0% {
+                transform: translate3d(0, 0, 0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--rot));
+                opacity: 0;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 16px 12px 24px;
+            }
+
+            .card {
+                padding: 14px;
+                border-radius: 14px;
+            }
+
+            .expense-row {
+                grid-template-columns: auto 1fr;
+            }
+
+            .expense-amount,
+            .remove-btn {
+                grid-column: 2;
+            }
+        }
+    </style>
+
+        <nav style="margin-bottom: 12px;">
+            <a class="nav-link" href="budgetcalander.html">Open Calendar</a>
+        </nav>
+</head>
+<body>
+    <div class="container">
+        <h1>Work + Commission Tracker</h1>
+        <p class="subtitle">Track daily earnings, reviews, and month totals.</p>
+
+        <section class="card">
+            <h2>Quick Weekly Snapshot</h2>
+            <div class="stats">
+                <div class="stat highlight-stat">
+                    <h3>This Week Earnings</h3>
+                    <p class="money" id="quickWeekIncome">$0.00</p>
+                </div>
+            </div>
+            <p class="small">Shows your current-week earnings from the days you saved.</p>
+        </section>
+
+        <section class="card">
+            <div class="grid">
+                <div>
+                    <label for="workDate">Date</label>
+                    <input id="workDate" type="date">
+                </div>
+                <div>
+                    <label for="hoursWorked">Hours worked</label>
+                    <input id="hoursWorked" type="number" min="0" step="0.25" placeholder="ex: 8">
+                </div>
+                <div>
+                    <label for="phonesRepaired">Phones repaired ($5 each)</label>
+                    <input id="phonesRepaired" type="number" min="0" step="1" placeholder="ex: 6">
+                </div>
+                <div>
+                    <label for="insuranceSignups">Insurance signups ($35 each)</label>
+                    <input id="insuranceSignups" type="number" min="0" step="1" placeholder="ex: 2">
+                </div>
+                <div>
+                    <label for="totalCustomers">Total customers</label>
+                    <input id="totalCustomers" type="number" min="0" step="1" placeholder="ex: 20">
+                </div>
+                <div>
+                    <label for="fiveStarReviews">5-star reviews</label>
+                    <input id="fiveStarReviews" type="number" min="0" step="1" placeholder="ex: 7">
+                </div>
+            </div>
+
+            <div style="margin-top: 12px;">
+                <label for="dailyNote">Daily Notes</label>
+                <textarea id="dailyNote" placeholder="ex: Busy day, 2 walk-ins, upsell worked."></textarea>
+            </div>
+
+            <div class="button-row">
+                <button id="saveBtn" type="button">Save / Update Day</button>
+                <button id="clearBtn" type="button" class="secondary">Clear Inputs</button>
+            </div>
+            <p class="small">Hourly pay rate is fixed at $15.40 per hour.</p>
+            <p class="small" id="syncStatus">Cloud sync: not connected. Add your Supabase keys in this file.</p>
+        </section>
+
+        <section class="card">
+            <h2>Daily Summary</h2>
+            <div class="stats">
+                <div class="stat">
+                    <h3>Hourly Pay</h3>
+                    <p class="money" id="dailyHourlyPay">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>Commission Pay</h3>
+                    <p class="money" id="dailyCommission">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>Total Daily Money</h3>
+                    <p class="money" id="dailyTotal">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>5-Star Rate</h3>
+                    <p id="dailyReviewRate">0.00%</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Daily Spending</h2>
+            <div class="grid">
+                <div>
+                    <label for="dailySpendingDate">Date</label>
+                    <input id="dailySpendingDate" type="date">
+                </div>
+                <div>
+                    <label for="dailySpendingAmount">Amount spent ($)</label>
+                    <input id="dailySpendingAmount" type="number" min="0" step="0.01" placeholder="ex: 42.50">
+                </div>
+            </div>
+            <div class="button-row">
+                <button id="saveDailySpendingBtn" type="button">Save Spending</button>
+            </div>
+            <div class="stats">
+                <div class="stat highlight-stat">
+                    <h3>Amount for Selected Day</h3>
+                    <p class="money" id="dailySpendingSummary">$0.00</p>
+                </div>
+            </div>
+            <p class="small">This updates the same date-based budget data used by the calendar.</p>
+        </section>
+
+        <section class="card">
+            <h2>Month Totals (Compare)</h2>
+            <div class="stats">
+                <div class="stat highlight-stat">
+                    <h3>This Month Money</h3>
+                    <p class="money" id="thisMonthMoney">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>This Month Phones Repaired</h3>
+                    <p id="thisMonthPhones">0</p>
+                </div>
+                <div class="stat">
+                    <h3>This Month 5-Star Reviews</h3>
+                    <p id="thisMonthReviews">0</p>
+                </div>
+                <div class="stat">
+                    <h3>This Month 5-Star %</h3>
+                    <p id="thisMonthRate">0.00%</p>
+                </div>
+                <div class="stat">
+                    <h3>Last Month Money</h3>
+                    <p class="money" id="lastMonthMoney">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>Last Month Phones Repaired</h3>
+                    <p id="lastMonthPhones">0</p>
+                </div>
+                <div class="stat">
+                    <h3>Last Month 5-Star Reviews</h3>
+                    <p id="lastMonthReviews">0</p>
+                </div>
+                <div class="stat">
+                    <h3>Last Month 5-Star %</h3>
+                    <p id="lastMonthRate">0.00%</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Year Totals</h2>
+            <div class="stats">
+                <div class="stat highlight-stat">
+                    <h3>This Year Money</h3>
+                    <p class="money" id="thisYearMoney">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>This Year Hours Worked</h3>
+                    <p id="thisYearHours">0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>Average Per Month</h3>
+                    <p id="thisYearAvgMonthly">$0.00</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Save Goal Planner</h2>
+            <div class="grid">
+                <div>
+                    <label for="goalAmount">Savings goal after bills ($)</label>
+                    <input id="goalAmount" type="number" min="0" step="1" value="1000">
+                </div>
+            </div>
+            <div class="card" style="margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(148,163,184,0.16);">
+                <h3 style="margin-top: 0; margin-bottom: 10px;">Bills for This Goal</h3>
+                <div class="grid">
+                    <div>
+                        <label for="billName">Bill name</label>
+                        <input id="billName" type="text" placeholder="ex: Rent">
+                    </div>
+                    <div>
+                        <label for="billAmount">Bill amount ($)</label>
+                        <input id="billAmount" type="number" min="0" step="0.01" placeholder="ex: 250">
+                    </div>
+                </div>
+                <div class="button-row">
+                    <button id="addBillBtn" type="button">Add Bill</button>
+                    <button id="refreshBillsBtn" type="button" class="secondary">Refresh Bills</button>
+                </div>
+                <p class="small" id="expenseMonthLabel">Bills for this month</p>
+                <div id="expenseList"></div>
+                <div class="stats">
+                    <div class="stat">
+                        <h3>Total Monthly Bills</h3>
+                        <p class="money" id="totalBillsAmount">$0.00</p>
+                    </div>
+                    <div class="stat">
+                        <h3>Bills Paid</h3>
+                        <p id="paidBillsAmount">$0.00</p>
+                    </div>
+                    <div class="stat">
+                        <h3>Bills Left</h3>
+                        <p id="remainingBillsAmount">$0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="goal-progress-wrap">
+                <div class="goal-ring">
+                    <svg viewBox="0 0 140 140" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="goalRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#2f81f7"></stop>
+                                <stop offset="100%" stop-color="#1d4ed8"></stop>
+                            </linearGradient>
+                        </defs>
+                        <circle class="goal-ring-bg" cx="70" cy="70" r="52"></circle>
+                        <circle id="plannerGoalRing" class="goal-ring-progress" cx="70" cy="70" r="52"></circle>
+                    </svg>
+                    <div class="goal-ring-label">
+                        <div id="plannerGoalProgress">0%</div>
+                        <p class="small">Goal Progress</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <h3>Income This Month</h3>
+                    <p class="money" id="plannerIncome">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>Needed To Hit Goal</h3>
+                    <p id="plannerNeeded">$0.00</p>
+                </div>
+                <div class="stat">
+                    <h3>Repairs Needed ($5 each)</h3>
+                    <p id="plannerRepairs">0</p>
+                </div>
+                <div class="stat">
+                    <h3>Signups Needed ($35 each)</h3>
+                    <p id="plannerSignups">0</p>
+                </div>
+                <div class="stat">
+                    <h3>Hours Needed ($17.02/hr)</h3>
+                    <p id="plannerHours">0.00</p>
+                </div>
+            </div>
+        </section>
+
+        
+        <section class="card">
+            <h2>Last 12 Months Graph</h2>
+            <div class="chart-wrap">
+                <canvas id="monthlyChart" height="120"></canvas>
+            </div>
+            <p class="small">Compares monthly money and 5-star rate for the last 12 months.</p>
+        </section>
+    </div>
+
+    <div class="confetti-layer" id="confettiLayer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const PAY_PER_HOUR = 15.40;
+        const PAY_PER_PHONE = 5;
+        const PAY_PER_SIGNUP = 35;
+        const SUPABASE_URL = "https://twzsvnegkhkhcgjjasik.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_nHkf-Zy3Tirn0XwLnGIsMw_MI-9zNhL";
+        const TABLE_NAME = "daily_tracker";
+        const EXPENSE_TABLE = "expense_items";
+        const EXPENSE_PAYMENT_TABLE = "expense_payments";
+        const SPENDING_TABLE = "daily_spending";
+
+        let supabaseClient = null;
+        let monthlyChart = null;
+        let thisMonthIncome = 0;
+        let thisMonthPhonesTotal = 0;
+        let thisMonthSignupsTotal = 0;
+        let thisWeekIncome = 0;
+        let currentExpenseItems = [];
+        let currentPaidMap = new Map();
+        const GOAL_RING_RADIUS = 52;
+        const GOAL_RING_CIRCUMFERENCE = 2 * Math.PI * GOAL_RING_RADIUS;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        const ids = {
+            workDate: document.getElementById("workDate"),
+            hoursWorked: document.getElementById("hoursWorked"),
+            phonesRepaired: document.getElementById("phonesRepaired"),
+            insuranceSignups: document.getElementById("insuranceSignups"),
+            totalCustomers: document.getElementById("totalCustomers"),
+            fiveStarReviews: document.getElementById("fiveStarReviews"),
+            saveBtn: document.getElementById("saveBtn"),
+            clearBtn: document.getElementById("clearBtn"),
+            dailyNote: document.getElementById("dailyNote"),
+            dailyHourlyPay: document.getElementById("dailyHourlyPay"),
+            dailyCommission: document.getElementById("dailyCommission"),
+            dailyTotal: document.getElementById("dailyTotal"),
+            dailyReviewRate: document.getElementById("dailyReviewRate"),
+            dailySpendingDate: document.getElementById("dailySpendingDate"),
+            dailySpendingAmount: document.getElementById("dailySpendingAmount"),
+            saveDailySpendingBtn: document.getElementById("saveDailySpendingBtn"),
+            dailySpendingSummary: document.getElementById("dailySpendingSummary"),
+            quickWeekIncome: document.getElementById("quickWeekIncome"),
+            thisMonthMoney: document.getElementById("thisMonthMoney"),
+            thisMonthPhones: document.getElementById("thisMonthPhones"),
+            thisMonthReviews: document.getElementById("thisMonthReviews"),
+            thisMonthRate: document.getElementById("thisMonthRate"),
+            lastMonthMoney: document.getElementById("lastMonthMoney"),
+            lastMonthPhones: document.getElementById("lastMonthPhones"),
+            lastMonthReviews: document.getElementById("lastMonthReviews"),
+            lastMonthRate: document.getElementById("lastMonthRate"),
+            thisYearMoney: document.getElementById("thisYearMoney"),
+            thisYearHours: document.getElementById("thisYearHours"),
+            thisYearAvgMonthly: document.getElementById("thisYearAvgMonthly"),
+            syncStatus: document.getElementById("syncStatus"),
+            billName: document.getElementById("billName"),
+            billAmount: document.getElementById("billAmount"),
+            addBillBtn: document.getElementById("addBillBtn"),
+            refreshBillsBtn: document.getElementById("refreshBillsBtn"),
+            expenseMonthLabel: document.getElementById("expenseMonthLabel"),
+            expenseList: document.getElementById("expenseList"),
+            totalBillsAmount: document.getElementById("totalBillsAmount"),
+            paidBillsAmount: document.getElementById("paidBillsAmount"),
+            remainingBillsAmount: document.getElementById("remainingBillsAmount"),
+            goalAmount: document.getElementById("goalAmount"),
+            plannerIncome: document.getElementById("plannerIncome"),
+            plannerNeeded: document.getElementById("plannerNeeded"),
+            plannerRepairs: document.getElementById("plannerRepairs"),
+            plannerSignups: document.getElementById("plannerSignups"),
+            plannerHours: document.getElementById("plannerHours"),
+            plannerGoalRing: document.getElementById("plannerGoalRing"),
+            plannerGoalProgress: document.getElementById("plannerGoalProgress"),
+            monthlyChart: document.getElementById("monthlyChart")
+        };
+
+        const loadingTargets = [
+            ids.thisMonthMoney,
+            ids.thisMonthPhones,
+            ids.thisMonthReviews,
+            ids.thisMonthRate,
+            ids.lastMonthMoney,
+            ids.lastMonthPhones,
+            ids.lastMonthReviews,
+            ids.lastMonthRate,
+            ids.thisYearMoney,
+            ids.thisYearHours,
+            ids.thisYearAvgMonthly,
+            ids.plannerIncome,
+            ids.plannerNeeded,
+            ids.plannerRepairs,
+            ids.plannerSignups,
+            ids.plannerHours,
+            ids.totalBillsAmount,
+            ids.paidBillsAmount,
+            ids.remainingBillsAmount
+        ];
+
+        const numberInputs = [
+            ids.hoursWorked,
+            ids.phonesRepaired,
+            ids.insuranceSignups,
+            ids.totalCustomers,
+            ids.fiveStarReviews
+        ];
+
+        function getValue(input) {
+            const parsed = Number.parseFloat(input.value);
+            return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        }
+
+        function currency(value) {
+            return `$${value.toFixed(2)}`;
+        }
+
+        function getWeekRange(dateObj) {
+            const dayOfWeek = dateObj.getDay();
+            const start = new Date(dateObj);
+            start.setHours(0, 0, 0, 0);
+            start.setDate(dateObj.getDate() - dayOfWeek);
+
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+
+            return {
+                startKey: formatDateKey(start),
+                endKey: formatDateKey(end)
+            };
+        }
+
+        function noteStorageKey(dateString) {
+            return `day_note_${dateString}`;
+        }
+
+        function budgetStorageKey(dateString) {
+            if (!dateString) {
+                return "";
+            }
+            const [year, month, day] = dateString.split("-");
+            return `budget-${year}-${Number(month)}-${Number(day)}`;
+        }
+
+        function getBudgetDayData(dateString) {
+            const key = budgetStorageKey(dateString);
+            if (!key) {
+                return { income: "", expense: "" };
+            }
+
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) {
+                    return { income: "", expense: "" };
+                }
+
+                const parsed = JSON.parse(raw);
+                return {
+                    income: Number.isFinite(Number(parsed.income)) ? Number(parsed.income) : "",
+                    expense: Number.isFinite(Number(parsed.expense)) ? Number(parsed.expense) : ""
+                };
+            } catch (error) {
+                console.error("Failed to load budget day data", error);
+                return { income: "", expense: "" };
+            }
+        }
+
+        async function saveDailySpending(amount, dateString) {
+            const selectedDate = dateString || ids.dailySpendingDate.value || ids.workDate.value;
+            if (!selectedDate) {
+                return;
+            }
+
+            const numericAmount = Math.max(0, Number(amount) || 0);
+            const budgetData = getBudgetDayData(selectedDate);
+            budgetData.expense = numericAmount;
+            localStorage.setItem(budgetStorageKey(selectedDate), JSON.stringify(budgetData));
+            renderDailySpendingCard();
+
+            if (!supabaseClient) {
+                setSyncStatus("Cloud sync: not connected. Add your Supabase URL + anon key.", true);
+                return;
+            }
+
+            try {
+                const { data: existingRows, error: selectError } = await supabaseClient
+                    .from(SPENDING_TABLE)
+                    .select("id")
+                    .eq("entry_date", selectedDate)
+                    .order("created_at", { ascending: false })
+                    .limit(1);
+
+                if (selectError) {
+                    throw selectError;
+                }
+
+                const row = {
+                    entry_date: selectedDate,
+                    description: "Daily spending",
+                    amount: numericAmount
+                };
+
+                let result;
+                if (existingRows && existingRows.length > 0) {
+                    result = await supabaseClient
+                        .from(SPENDING_TABLE)
+                        .update(row)
+                        .eq("id", existingRows[0].id);
+                } else {
+                    result = await supabaseClient
+                        .from(SPENDING_TABLE)
+                        .insert(row);
+                }
+
+                if (result.error) {
+                    throw result.error;
+                }
+
+                setSyncStatus("Cloud sync: connected.");
+            } catch (error) {
+                console.error("Failed to save spending", error);
+                setSyncStatus(`Cloud sync error: ${error.message}`, true);
+            }
+        }
+
+        async function loadDailySpendingForDate(dateString) {
+            const selectedDate = dateString || ids.dailySpendingDate.value || ids.workDate.value;
+            if (!selectedDate) {
+                renderDailySpendingCard();
+                return;
+            }
+
+            if (!supabaseClient) {
+                renderDailySpendingCard();
+                return;
+            }
+
+            try {
+                const { data: rows, error } = await supabaseClient
+                    .from(SPENDING_TABLE)
+                    .select("amount")
+                    .eq("entry_date", selectedDate)
+                    .order("created_at", { ascending: false })
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                if (rows && rows.length > 0) {
+                    const budgetData = getBudgetDayData(selectedDate);
+                    budgetData.expense = Number(rows[0].amount) || 0;
+                    localStorage.setItem(budgetStorageKey(selectedDate), JSON.stringify(budgetData));
+                }
+
+                renderDailySpendingCard();
+            } catch (error) {
+                console.error("Failed to load spending", error);
+                renderDailySpendingCard();
+            }
+        }
+
+        function renderDailySpendingCard() {
+            const selectedDate = ids.dailySpendingDate.value || ids.workDate.value;
+            const data = getBudgetDayData(selectedDate);
+            const expense = Number(data.expense) || 0;
+            ids.dailySpendingSummary.textContent = currency(expense);
+            ids.dailySpendingAmount.value = expense > 0 ? String(expense) : "";
+        }
+
+        function animateValue(element, target, formatter, duration = 560) {
+            const numericTarget = Number(target) || 0;
+
+            if (reduceMotion) {
+                element.textContent = formatter(numericTarget);
+                element.dataset.numericValue = String(numericTarget);
+                return;
+            }
+
+            const previousAnim = Number(element.dataset.animFrame || 0);
+            if (previousAnim) {
+                cancelAnimationFrame(previousAnim);
+            }
+
+            const start = Number.parseFloat(element.dataset.numericValue || "0") || 0;
+            const startTime = performance.now();
+
+            function step(now) {
+                const progress = Math.min(1, (now - startTime) / duration);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const value = start + ((numericTarget - start) * eased);
+                element.textContent = formatter(value);
+
+                if (progress < 1) {
+                    const raf = requestAnimationFrame(step);
+                    element.dataset.animFrame = String(raf);
+                } else {
+                    element.dataset.numericValue = String(numericTarget);
+                    element.dataset.animFrame = "0";
+                }
+            }
+
+            const raf = requestAnimationFrame(step);
+            element.dataset.animFrame = String(raf);
+        }
+
+        function setLoadingState(isLoading) {
+            loadingTargets.forEach((target) => {
+                if (!target) {
+                    return;
+                }
+                target.classList.toggle("loading-text", isLoading);
+            });
+        }
+
+        function triggerCardShimmer() {
+            if (reduceMotion) {
+                return;
+            }
+            document.querySelectorAll(".card").forEach((card) => {
+                card.classList.remove("shimmer-active");
+                void card.offsetWidth;
+                card.classList.add("shimmer-active");
+                setTimeout(() => card.classList.remove("shimmer-active"), 1500);
+            });
+        }
+
+        function triggerConfetti() {
+            if (reduceMotion) {
+                return;
+            }
+
+            const layer = document.getElementById("confettiLayer");
+            if (!layer) {
+                return;
+            }
+
+            const colors = ["#2f81f7", "#60a5fa", "#1d4ed8", "#93c5fd", "#0f172a"];
+            const burstCount = 28;
+
+            for (let i = 0; i < burstCount; i += 1) {
+                const piece = document.createElement("span");
+                piece.className = "confetti-piece";
+                const centerX = window.innerWidth * 0.5;
+                const centerY = Math.min(window.innerHeight * 0.2, 170);
+                const spreadX = (Math.random() * 240) - 120;
+                const spreadY = (Math.random() * 180) + 110;
+
+                piece.style.left = `${centerX}px`;
+                piece.style.top = `${centerY}px`;
+                piece.style.background = colors[i % colors.length];
+                piece.style.setProperty("--dx", `${spreadX}px`);
+                piece.style.setProperty("--dy", `${spreadY}px`);
+                piece.style.setProperty("--rot", `${(Math.random() * 360) - 180}deg`);
+                layer.appendChild(piece);
+
+                setTimeout(() => piece.remove(), 900);
+            }
+        }
+
+        function setupButtonRipples() {
+            document.querySelectorAll("button").forEach((button) => {
+                button.addEventListener("click", (event) => {
+                    const rect = button.getBoundingClientRect();
+                    const ripple = document.createElement("span");
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.className = "ripple";
+                    ripple.style.width = `${size}px`;
+                    ripple.style.height = `${size}px`;
+                    ripple.style.left = `${event.clientX - rect.left - (size / 2)}px`;
+                    ripple.style.top = `${event.clientY - rect.top - (size / 2)}px`;
+
+                    button.style.position = "relative";
+                    button.style.overflow = "hidden";
+                    button.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 650);
+                });
+            });
+        }
+
+        function setupCardParallax() {
+            if (reduceMotion || !window.matchMedia("(pointer: fine)").matches) {
+                return;
+            }
+
+            document.querySelectorAll(".card").forEach((card) => {
+                card.addEventListener("mousemove", (event) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = (event.clientX - rect.left) / rect.width;
+                    const y = (event.clientY - rect.top) / rect.height;
+                    const rotateY = (x - 0.5) * 2.6;
+                    const rotateX = (0.5 - y) * 2.2;
+                    card.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                });
+
+                card.addEventListener("mouseleave", () => {
+                    card.style.transform = "";
+                });
+            });
+        }
+
+        function setupCardReveal() {
+            document.querySelectorAll(".card").forEach((card, index) => {
+                card.style.setProperty("--reveal-delay", `${index * 0.08}s`);
+            });
+        }
+
+        function percent(numerator, denominator) {
+            if (denominator <= 0) {
+                return "0.00%";
+            }
+            return `${((numerator / denominator) * 100).toFixed(2)}%`;
+        }
+
+        function calculateFromInputs() {
+            const hoursWorked = getValue(ids.hoursWorked);
+            const phonesRepaired = getValue(ids.phonesRepaired);
+            const insuranceSignups = getValue(ids.insuranceSignups);
+            const totalCustomers = getValue(ids.totalCustomers);
+            const fiveStarReviews = getValue(ids.fiveStarReviews);
+
+            const hourlyPay = hoursWorked * PAY_PER_HOUR;
+            const commissionPay = (phonesRepaired * PAY_PER_PHONE) + (insuranceSignups * PAY_PER_SIGNUP);
+            const totalPay = hourlyPay + commissionPay;
+            const reviewRate = percent(fiveStarReviews, totalCustomers);
+
+            return {
+                hoursWorked,
+                phonesRepaired,
+                insuranceSignups,
+                totalCustomers,
+                fiveStarReviews,
+                hourlyPay,
+                commissionPay,
+                totalPay,
+                reviewRate
+            };
+        }
+
+        function renderDailySummary() {
+            const daily = calculateFromInputs();
+            animateValue(ids.dailyHourlyPay, daily.hourlyPay, (value) => currency(value), 380);
+            animateValue(ids.dailyCommission, daily.commissionPay, (value) => currency(value), 380);
+            animateValue(ids.dailyTotal, daily.totalPay, (value) => currency(value), 420);
+            animateValue(
+                ids.dailyReviewRate,
+                daily.totalCustomers > 0 ? (daily.fiveStarReviews / daily.totalCustomers) * 100 : 0,
+                (value) => `${value.toFixed(2)}%`,
+                380
+            );
+        }
+
+        function renderQuickStats() {
+            animateValue(ids.quickWeekIncome, thisWeekIncome, (value) => currency(value), 320);
+        }
+
+        function clearMonthSummary() {
+            animateValue(ids.thisMonthMoney, 0, (value) => currency(value), 260);
+            animateValue(ids.thisMonthPhones, 0, (value) => `${Math.round(value)}`, 260);
+            animateValue(ids.thisMonthReviews, 0, (value) => `${Math.round(value)}`, 260);
+            animateValue(ids.thisMonthRate, 0, (value) => `${value.toFixed(2)}%`, 260);
+            animateValue(ids.lastMonthMoney, 0, (value) => currency(value), 260);
+            animateValue(ids.lastMonthPhones, 0, (value) => `${Math.round(value)}`, 260);
+            animateValue(ids.lastMonthReviews, 0, (value) => `${Math.round(value)}`, 260);
+            animateValue(ids.lastMonthRate, 0, (value) => `${value.toFixed(2)}%`, 260);
+        }
+
+        function clearYearSummary() {
+            animateValue(ids.thisYearMoney, 0, (value) => currency(value), 260);
+            animateValue(ids.thisYearHours, 0, (value) => value.toFixed(2), 260);
+            animateValue(ids.thisYearAvgMonthly, 0, (value) => currency(value), 260);
+        }
+
+        function setSyncStatus(text, isError = false) {
+            ids.syncStatus.textContent = text;
+            ids.syncStatus.style.color = isError ? "#b11a1a" : "#5f6b7a";
+        }
+
+        function isSupabaseConfigured() {
+            return (
+                SUPABASE_URL &&
+                SUPABASE_ANON_KEY &&
+                SUPABASE_URL !== "PASTE_YOUR_SUPABASE_URL_HERE" &&
+                SUPABASE_ANON_KEY !== "PASTE_YOUR_SUPABASE_ANON_KEY_HERE"
+            );
+        }
+
+        function initSupabase() {
+            if (!isSupabaseConfigured()) {
+                setSyncStatus("Cloud sync: not connected. Add your Supabase URL + anon key.", true);
+                return false;
+            }
+
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            setSyncStatus("Cloud sync: connected.");
+
+            return true;
+        }
+
+        function monthKeyFromDate(dateString) {
+            return dateString ? dateString.slice(0, 7) : "";
+        }
+
+        function formatMonthLabel(monthKey) {
+            const [year, month] = monthKey.split("-").map(Number);
+            const d = new Date(year, month - 1, 1);
+            return d.toLocaleString("en-US", { month: "short", year: "2-digit" });
+        }
+
+        function getCurrentMonthKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        }
+
+        function getPastMonthKeys(count) {
+            const keys = [];
+            const now = new Date();
+            for (let i = count - 1; i >= 0; i -= 1) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+            }
+            return keys;
+        }
+
+        function getMonthStartEnd(monthKey) {
+            const [year, month] = monthKey.split("-").map(Number);
+            const start = new Date(year, month - 1, 1);
+            const end = new Date(year, month, 0);
+            const startKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+            const endKey = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+            return { startKey, endKey };
+        }
+
+        function summarizeMonth(records, monthKey) {
+            let money = 0;
+            let phones = 0;
+            let signups = 0;
+            let reviews = 0;
+            let customers = 0;
+
+            for (const item of records) {
+                if (monthKeyFromDate(item.day_date) !== monthKey) {
+                    continue;
+                }
+                money += Number(item.totalPay || 0);
+                phones += Number(item.phonesRepaired || 0);
+                signups += Number(item.insuranceSignups || 0);
+                reviews += Number(item.fiveStarReviews || 0);
+                customers += Number(item.totalCustomers || 0);
+            }
+
+            return { money, phones, signups, reviews, customers };
+        }
+
+        function monthRange(dateObj) {
+            const start = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
+            const end = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0);
+            const startKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+            const endKey = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+            return { startKey, endKey };
+        }
+
+        function formatDateKey(dateObj) {
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const dd = String(dateObj.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function yearRange(dateObj) {
+            const start = new Date(dateObj.getFullYear(), 0, 1);
+            const end = new Date(dateObj.getFullYear(), 11, 31);
+            return {
+                startKey: formatDateKey(start),
+                endKey: formatDateKey(end)
+            };
+        }
+
+
+        async function fetchRecordsInRange(startDate, endDate) {
+            if (!supabaseClient) {
+                return [];
+            }
+
+            const { data, error } = await supabaseClient
+                .from(TABLE_NAME)
+                .select("day_date, total_pay, hours_worked, phones_repaired, insurance_signups, five_star_reviews, total_customers")
+                .gte("day_date", startDate)
+                .lte("day_date", endDate)
+                .order("day_date", { ascending: true });
+
+            if (error) {
+                throw error;
+            }
+
+            return (data || []).map((item) => ({
+                day_date: item.day_date,
+                totalPay: Number(item.total_pay || 0),
+                hoursWorked: Number(item.hours_worked || 0),
+                phonesRepaired: Number(item.phones_repaired || 0),
+                insuranceSignups: Number(item.insurance_signups || 0),
+                fiveStarReviews: Number(item.five_star_reviews || 0),
+                totalCustomers: Number(item.total_customers || 0)
+            }));
+        }
+
+        async function renderMonthSummary() {
+            if (!supabaseClient) {
+                clearMonthSummary();
+                return;
+            }
+
+            const today = new Date();
+            const thisMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+            const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
+
+            const thisRange = monthRange(today);
+            const lastRange = monthRange(lastMonthDate);
+
+            const [thisRows, lastRows] = await Promise.all([
+                fetchRecordsInRange(thisRange.startKey, thisRange.endKey),
+                fetchRecordsInRange(lastRange.startKey, lastRange.endKey)
+            ]);
+
+            const weekRange = getWeekRange(today);
+            const weekRows = await fetchRecordsInRange(weekRange.startKey, weekRange.endKey);
+            thisWeekIncome = weekRows.reduce((sum, row) => sum + Number(row.totalPay || 0), 0);
+
+            const thisMonth = summarizeMonth(thisRows, thisMonthKey);
+            const lastMonth = summarizeMonth(lastRows, lastMonthKey);
+            thisMonthIncome = thisMonth.money;
+            thisMonthPhonesTotal = thisMonth.phones;
+            thisMonthSignupsTotal = thisMonth.signups;
+
+            animateValue(ids.thisMonthMoney, thisMonth.money, (value) => currency(value));
+            animateValue(ids.thisMonthPhones, thisMonth.phones, (value) => `${Math.round(value)}`);
+            animateValue(ids.thisMonthReviews, thisMonth.reviews, (value) => `${Math.round(value)}`);
+            animateValue(
+                ids.thisMonthRate,
+                thisMonth.customers > 0 ? (thisMonth.reviews / thisMonth.customers) * 100 : 0,
+                (value) => `${value.toFixed(2)}%`
+            );
+
+            animateValue(ids.lastMonthMoney, lastMonth.money, (value) => currency(value));
+            animateValue(ids.lastMonthPhones, lastMonth.phones, (value) => `${Math.round(value)}`);
+            animateValue(ids.lastMonthReviews, lastMonth.reviews, (value) => `${Math.round(value)}`);
+            animateValue(
+                ids.lastMonthRate,
+                lastMonth.customers > 0 ? (lastMonth.reviews / lastMonth.customers) * 100 : 0,
+                (value) => `${value.toFixed(2)}%`
+            );
+
+            renderPlanner();
+            renderQuickStats();
+        }
+
+        async function renderYearSummary() {
+            if (!supabaseClient) {
+                clearYearSummary();
+                return;
+            }
+
+            const now = new Date();
+            const range = yearRange(now);
+            const rows = await fetchRecordsInRange(range.startKey, range.endKey);
+
+            const yearlyMoney = rows.reduce((sum, row) => sum + Number(row.totalPay || 0), 0);
+            const yearlyHours = rows.reduce((sum, row) => sum + Number(row.hoursWorked || 0), 0);
+            const monthCount = now.getMonth() + 1;
+
+            animateValue(ids.thisYearMoney, yearlyMoney, (value) => currency(value));
+            animateValue(ids.thisYearHours, yearlyHours, (value) => value.toFixed(2));
+            animateValue(ids.thisYearAvgMonthly, yearlyMoney / monthCount, (value) => currency(value));
+        }
+
+        async function loadExpenseItems() {
+            if (!supabaseClient) {
+                currentExpenseItems = [];
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from(EXPENSE_TABLE)
+                .select("id, name, amount")
+                .eq("is_active", true)
+                .order("created_at", { ascending: true });
+
+            if (error) {
+                throw error;
+            }
+
+            currentExpenseItems = (data || []).map((item) => ({
+                id: Number(item.id),
+                name: item.name,
+                amount: Number(item.amount || 0)
+            }));
+        }
+
+        async function loadExpensePaidStatus(monthKey) {
+            if (!supabaseClient) {
+                currentPaidMap = new Map();
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from(EXPENSE_PAYMENT_TABLE)
+                .select("expense_id, is_paid")
+                .eq("month_key", monthKey);
+
+            if (error) {
+                throw error;
+            }
+
+            currentPaidMap = new Map();
+            (data || []).forEach((item) => {
+                currentPaidMap.set(Number(item.expense_id), Boolean(item.is_paid));
+            });
+        }
+
+        function getExpenseTotals() {
+            let total = 0;
+            let paid = 0;
+
+            currentExpenseItems.forEach((item) => {
+                total += item.amount;
+                if (currentPaidMap.get(item.id)) {
+                    paid += item.amount;
+                }
+            });
+
+            return {
+                total,
+                paid,
+                remaining: Math.max(0, total - paid)
+            };
+        }
+
+        function renderExpenseList() {
+            const monthKey = getCurrentMonthKey();
+            ids.expenseMonthLabel.textContent = `Bills for ${formatMonthLabel(monthKey)}`;
+
+            if (currentExpenseItems.length === 0) {
+                ids.expenseList.innerHTML = "<p class='small'>No bills yet. Add your first bill above.</p>";
+                ids.totalBillsAmount.textContent = "$0.00";
+                ids.paidBillsAmount.textContent = "$0.00";
+                ids.remainingBillsAmount.textContent = "$0.00";
+                renderPlanner();
+                return;
+            }
+
+            ids.expenseList.innerHTML = currentExpenseItems.map((item) => {
+                const checked = currentPaidMap.get(item.id) ? "checked" : "";
+                return `
+                    <div class="expense-row">
+                        <input type="checkbox" data-expense-id="${item.id}" ${checked}>
+                        <div class="expense-name">${item.name}</div>
+                        <div class="expense-amount">${currency(item.amount)}</div>
+                        <button class="remove-btn" data-remove-id="${item.id}" type="button">Remove</button>
+                    </div>
+                `;
+            }).join("");
+
+            const totals = getExpenseTotals();
+            animateValue(ids.totalBillsAmount, totals.total, (value) => currency(value));
+            animateValue(ids.paidBillsAmount, totals.paid, (value) => currency(value));
+            animateValue(ids.remainingBillsAmount, totals.remaining, (value) => currency(value));
+            renderPlanner();
+        }
+
+        async function refreshExpenses() {
+            if (!supabaseClient) {
+                return;
+            }
+
+            const monthKey = getCurrentMonthKey();
+            await loadExpenseItems();
+            await loadExpensePaidStatus(monthKey);
+            renderExpenseList();
+        }
+
+        async function addBill() {
+            if (!supabaseClient) {
+                alert("Supabase is not connected yet.");
+                return;
+            }
+
+            const name = ids.billName.value.trim();
+            const amount = Number.parseFloat(ids.billAmount.value);
+
+            if (!name || !Number.isFinite(amount) || amount < 0) {
+                alert("Enter a valid bill name and amount.");
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from(EXPENSE_TABLE)
+                .insert({ name, amount, is_active: true });
+
+            if (error) {
+                alert(`Failed to add bill: ${error.message}`);
+                return;
+            }
+
+            ids.billName.value = "";
+            ids.billAmount.value = "";
+            await refreshExpenses();
+        }
+
+        async function toggleExpensePaid(expenseId, isPaid) {
+            const monthKey = getCurrentMonthKey();
+
+            const { error } = await supabaseClient
+                .from(EXPENSE_PAYMENT_TABLE)
+                .upsert({
+                    expense_id: expenseId,
+                    month_key: monthKey,
+                    is_paid: isPaid
+                }, { onConflict: "expense_id,month_key" });
+
+            if (error) {
+                alert(`Failed to update bill status: ${error.message}`);
+                return;
+            }
+
+            currentPaidMap.set(expenseId, isPaid);
+            renderExpenseList();
+        }
+
+        async function removeBill(expenseId) {
+            const { error } = await supabaseClient
+                .from(EXPENSE_TABLE)
+                .delete()
+                .eq("id", expenseId);
+
+            if (error) {
+                alert(`Failed to remove bill: ${error.message}`);
+                return;
+            }
+
+            await refreshExpenses();
+        }
+
+        function renderPlanner() {
+            const goal = Math.max(0, Number.parseFloat(ids.goalAmount.value) || 0);
+            const billsTotal = getExpenseTotals().total;
+            const requiredIncome = billsTotal + goal;
+            const needed = Math.max(0, requiredIncome - thisMonthIncome);
+            const progress = requiredIncome > 0 ? Math.min(1, thisMonthIncome / requiredIncome) : 1;
+            const progressPercent = progress * 100;
+
+            animateValue(ids.plannerIncome, thisMonthIncome, (value) => currency(value));
+            animateValue(ids.plannerNeeded, needed, (value) => currency(value));
+            animateValue(ids.plannerRepairs, Math.ceil(needed / PAY_PER_PHONE), (value) => `${Math.round(value)}`);
+            animateValue(ids.plannerSignups, Math.ceil(needed / PAY_PER_SIGNUP), (value) => `${Math.round(value)}`);
+            animateValue(ids.plannerHours, needed / PAY_PER_HOUR, (value) => value.toFixed(2));
+
+            ids.plannerGoalRing.style.strokeDasharray = `${GOAL_RING_CIRCUMFERENCE}`;
+            ids.plannerGoalRing.style.strokeDashoffset = `${GOAL_RING_CIRCUMFERENCE * (1 - progress)}`;
+            animateValue(ids.plannerGoalProgress, progressPercent, (value) => `${Math.round(value)}%`, 420);
+        }
+
+        async function render12MonthChart() {
+            if (!supabaseClient) {
+                return;
+            }
+
+            const monthKeys = getPastMonthKeys(12);
+            const firstRange = getMonthStartEnd(monthKeys[0]);
+            const lastRange = getMonthStartEnd(monthKeys[monthKeys.length - 1]);
+
+            const { data, error } = await supabaseClient
+                .from(TABLE_NAME)
+                .select("day_date, total_pay, five_star_reviews, total_customers")
+                .gte("day_date", firstRange.startKey)
+                .lte("day_date", lastRange.endKey)
+                .order("day_date", { ascending: true });
+
+            if (error) {
+                throw error;
+            }
+
+            const aggregate = new Map();
+            monthKeys.forEach((key) => {
+                aggregate.set(key, { money: 0, reviews: 0, customers: 0 });
+            });
+
+            (data || []).forEach((item) => {
+                const key = monthKeyFromDate(item.day_date);
+                if (!aggregate.has(key)) {
+                    return;
+                }
+                const row = aggregate.get(key);
+                row.money += Number(item.total_pay || 0);
+                row.reviews += Number(item.five_star_reviews || 0);
+                row.customers += Number(item.total_customers || 0);
+            });
+
+            const labels = monthKeys.map((key) => formatMonthLabel(key));
+            const moneyData = monthKeys.map((key) => aggregate.get(key).money);
+            const rateData = monthKeys.map((key) => {
+                const row = aggregate.get(key);
+                return row.customers > 0 ? Number(((row.reviews / row.customers) * 100).toFixed(2)) : 0;
+            });
+
+            if (monthlyChart) {
+                monthlyChart.destroy();
+            }
+
+            monthlyChart = new Chart(ids.monthlyChart, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: "Money ($)",
+                            data: moneyData,
+                            backgroundColor: "rgba(47, 129, 247, 0.55)",
+                            borderColor: "rgba(29, 78, 216, 1)",
+                            borderWidth: 1,
+                            yAxisID: "y"
+                        },
+                        {
+                            label: "5-Star Rate (%)",
+                            data: rateData,
+                            type: "line",
+                            borderColor: "rgba(147, 197, 253, 1)",
+                            backgroundColor: "rgba(147, 197, 253, 0.2)",
+                            tension: 0.25,
+                            yAxisID: "y1"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Money ($)" }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: "right",
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: "5-Star Rate (%)" }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadSelectedDateData() {
+            const selected = ids.workDate.value;
+            if (!selected) {
+                clearInputs();
+                return;
+            }
+
+            ids.dailyNote.value = localStorage.getItem(noteStorageKey(selected)) || "";
+
+            if (!supabaseClient) {
+                numberInputs.forEach((input) => {
+                    input.value = "";
+                });
+                renderDailySummary();
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from(TABLE_NAME)
+                .select("hours_worked, phones_repaired, insurance_signups, total_customers, five_star_reviews")
+                .eq("day_date", selected)
+                .maybeSingle();
+
+            if (error) {
+                alert(`Failed to load date data: ${error.message}`);
+                return;
+            }
+
+            const record = data;
+
+            if (!record) {
+                numberInputs.forEach((input) => {
+                    input.value = "";
+                });
+                renderDailySummary();
+                return;
+            }
+
+            ids.hoursWorked.value = record.hours_worked ?? "";
+            ids.phonesRepaired.value = record.phones_repaired ?? "";
+            ids.insuranceSignups.value = record.insurance_signups ?? "";
+            ids.totalCustomers.value = record.total_customers ?? "";
+            ids.fiveStarReviews.value = record.five_star_reviews ?? "";
+
+            renderDailySummary();
+        }
+
+        function setDefaultDate() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, "0");
+            const dd = String(now.getDate()).padStart(2, "0");
+            ids.workDate.value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        async function saveDayRecord() {
+            if (!supabaseClient) {
+                alert("Supabase is not connected yet. Add URL and anon key first.");
+                return;
+            }
+
+            const selectedDate = ids.workDate.value;
+            if (!selectedDate) {
+                alert("Please choose a date.");
+                return;
+            }
+
+            const daily = calculateFromInputs();
+            if (daily.fiveStarReviews > daily.totalCustomers) {
+                alert("5-star reviews cannot be more than total customers.");
+                return;
+            }
+
+            const row = {
+                day_date: selectedDate,
+                hours_worked: daily.hoursWorked,
+                phones_repaired: daily.phonesRepaired,
+                insurance_signups: daily.insuranceSignups,
+                total_customers: daily.totalCustomers,
+                five_star_reviews: daily.fiveStarReviews,
+                hourly_pay: daily.hourlyPay,
+                commission_pay: daily.commissionPay,
+                total_pay: daily.totalPay
+            };
+
+            localStorage.setItem(noteStorageKey(selectedDate), ids.dailyNote.value.trim());
+
+            const { error } = await supabaseClient
+                .from(TABLE_NAME)
+                .upsert(row, { onConflict: "day_date" });
+
+            if (error) {
+                alert(`Save failed: ${error.message}`);
+                return;
+            }
+
+            setLoadingState(true);
+            await renderMonthSummary();
+            await renderYearSummary();
+            await render12MonthChart();
+            setLoadingState(false);
+            triggerCardShimmer();
+            triggerConfetti();
+            alert("Saved.");
+        }
+
+        function clearInputs() {
+            numberInputs.forEach((input) => {
+                input.value = "";
+            });
+            ids.dailyNote.value = "";
+            renderDailySummary();
+        }
+
+        ids.saveBtn.addEventListener("click", saveDayRecord);
+        ids.clearBtn.addEventListener("click", clearInputs);
+        ids.saveDailySpendingBtn.addEventListener("click", () => {
+            saveDailySpending(ids.dailySpendingAmount.value, ids.dailySpendingDate.value || ids.workDate.value);
+        });
+        ids.addBillBtn.addEventListener("click", addBill);
+        ids.refreshBillsBtn.addEventListener("click", refreshExpenses);
+        ids.goalAmount.addEventListener("input", renderPlanner);
+        ids.workDate.addEventListener("change", async () => {
+            ids.dailySpendingDate.value = ids.workDate.value;
+            await loadDailySpendingForDate(ids.workDate.value);
+            await loadSelectedDateData();
+        });
+        ids.dailySpendingDate.addEventListener("change", async () => {
+            await loadDailySpendingForDate(ids.dailySpendingDate.value);
+        });
+        numberInputs.forEach((input) => input.addEventListener("input", renderDailySummary));
+        ids.expenseList.addEventListener("change", async (event) => {
+            const target = event.target;
+            if (!target.matches("input[type='checkbox'][data-expense-id]")) {
+                return;
+            }
+
+            const expenseId = Number(target.getAttribute("data-expense-id"));
+            await toggleExpensePaid(expenseId, target.checked);
+        });
+
+        ids.expenseList.addEventListener("click", async (event) => {
+            const target = event.target;
+            if (!target.matches("button[data-remove-id]")) {
+                return;
+            }
+
+            const expenseId = Number(target.getAttribute("data-remove-id"));
+            await removeBill(expenseId);
+        });
+
+        async function initializeApp() {
+            setupCardReveal();
+            setupCardParallax();
+            setupButtonRipples();
+            setDefaultDate();
+            ids.dailySpendingDate.value = ids.workDate.value;
+            renderDailySummary();
+            renderDailySpendingCard();
+            clearMonthSummary();
+            clearYearSummary();
+            renderPlanner();
+            renderQuickStats();
+
+            ids.dailyNote.value = localStorage.getItem(noteStorageKey(ids.workDate.value)) || "";
+
+            if (initSupabase()) {
+                try {
+                    setLoadingState(true);
+                    await Promise.all([
+                        loadSelectedDateData(),
+                        loadDailySpendingForDate(ids.workDate.value),
+                        renderMonthSummary(),
+                        renderYearSummary(),
+                        refreshExpenses(),
+                        render12MonthChart()
+                    ]);
+                    setLoadingState(false);
+                    triggerCardShimmer();
+                } catch (error) {
+                    setLoadingState(false);
+                    setSyncStatus(`Cloud sync error: ${error.message}`, true);
+                }
+            }
+        }
+
+        initializeApp();
+    </script>
+</body>
+</html>
